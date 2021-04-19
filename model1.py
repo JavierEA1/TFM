@@ -5,8 +5,12 @@ n=50
 w=6
 p=5
 mu=20
+pary=mu-w
+distr=np.repeat(0.1,11)
 mu_coeff = list(range(0,n+5,p))
 long_l=len(mu_coeff)
+binvar=list(range(1,long_l+1))
+
 so_coeff=[i**2 for i in mu_coeff]
 Const_coeff=np.zeros((long_l-1,long_l+1))
 for i in range(0,long_l-1):
@@ -18,7 +22,9 @@ for i in range(0,long_l-1):
 rest_coeff=np.ones((long_l,2))
 for i in range(0,long_l):
     rest_coeff[i,1]=i*p
-
+y=m.addVars(binvar,name="y",vtype=GRB.BINARY)
+model.addConstrs(quicksum(Const_coeff[i][j]*distr[j] for j in distr )+pary*y[i] )<=mu for i in y )
+model.addConstrs(quicksum(y[i]))
 min(t)
 
 
