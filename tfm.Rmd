@@ -1,0 +1,68 @@
+---
+title: "TFM"
+author: "Javier Esteban Aragoneses"
+date: "22/4/2021"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+library(lpSolve)
+```
+
+
+
+```{r cars}
+y<-Variable(11)
+obj=10000
+prob=rep(0,11)
+ct=rep(0,11)
+for(i in 1:11){
+  prob[i]=0.1-0.002*(i-1)
+  ct[i]=5*prob[i]*(i-1)
+}
+n=50
+w=6
+p=5
+sm=600
+mu=sum(ct)
+len=length(prob)
+pary=mu-w
+A=matrix(0,nrow=len,ncol=len)
+contr=list()
+for(i in 1:len){
+  for(j in 1:(len+1-i)){
+    
+ A[i,len-j+1]=(n-(j-1)*p)*prob[len-j+1]    
+ 
+    }
+}
+Sum1=apply(A,1,sum)
+b1=mu-Sum1
+f.rhs=append(b1, c(rep(0,len),1))
+B=matrix(0,nrow=2*len,ncol=len+1)
+f.dir=rep("<",2*len)
+for(i in 1:(2*len)){
+  if(i<=len){
+    B[i,i+1]=14
+    
+  }
+  else{
+    B[i,1]=1
+    B[i,i+1-len]=-5*(i-(len+1))
+    f.dir[i]=">"
+  }
+  
+}
+f.dir=append(f.dir,"=")
+f.con=rbind(B,c(0,rep(1,11)))
+f.obj<-c(1,rep(0,len))
+res <- lp("min", f.obj, f.con, f.dir, f.rhs,int.vec = (2:12))
+```
+
+
+
+```{r pressure, echo=FALSE}
+print(res)
+```
+
+
