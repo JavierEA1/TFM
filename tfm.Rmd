@@ -7,32 +7,23 @@ output: html_document
 
 ```{r setup, include=FALSE}
 library(lpSolve)
+library(dplyr)
+library(data.table)
 ```
 
 
 
 ```{r cars}
-y<-Variable(11)
-obj=10000
-prob=rep(0,11)
-ct=rep(0,11)
-for(i in 1:11){
-  prob[i]=0.1-0.002*(i-1)
-  ct[i]=5*prob[i]*(i-1)
-}
-n=50
-w=6
-p=5
-sm=600
-mu=sum(ct)
-len=length(prob)
-pary=mu-w
+
+model1=function(mu,prob,p,w){
+  pary=mu-w
+ len=length(prob) 
 A=matrix(0,nrow=len,ncol=len)
 contr=list()
 for(i in 1:len){
   for(j in 1:(len+1-i)){
     
- A[i,len-j+1]=(n-(j-1)*p)*prob[len-j+1]    
+ A[i,len-j+1]=(2*mu-(j-1)*p)*prob[len-j+1]    
  
     }
 }
@@ -43,7 +34,7 @@ B=matrix(0,nrow=2*len,ncol=len+1)
 f.dir=rep("<",2*len)
 for(i in 1:(2*len)){
   if(i<=len){
-    B[i,i+1]=14
+    B[i,i+1]=pary
     
   }
   else{
@@ -54,15 +45,175 @@ for(i in 1:(2*len)){
   
 }
 f.dir=append(f.dir,"=")
-f.con=rbind(B,c(0,rep(1,11)))
+f.con=rbind(B,c(0,rep(1,len)))
 f.obj<-c(1,rep(0,len))
-res <- lp("min", f.obj, f.con, f.dir, f.rhs,int.vec = (2:12))
+lp("min", f.obj, f.con, f.dir, f.rhs,int.vec = (2:(len+1)))
+}
 ```
 
 
 
 ```{r pressure, echo=FALSE}
-print(res)
+
+prob=rep(0,11)
+ct=rep(0,11)
+for(i in 1:11){
+  prob[i]=0.1-0.002*(i-1)
+  ct[i]=5*prob[i]*(i-1)
+}
+w=6
+p=5
+sm=600
+mu=sum(ct)
+
+pary=mu-w
+model1(mu,prob,p,pary)
+```
+```{r}
+datosN=c()
+for(i in 1:11){
+  datosN[i]=dnorm((i-1)*5,mean=35, sd=10)
+}
+mu=35
+
+model1(mu,prob=datosN,p,w)
+```
+```{r}
+sd=c(1,seq(20,100,by=20))
+mu=1000
+p=c(1,seq(5,25, by=5))
+w=seq(0,300,by=50)
+Ncolum=length(sd)+length(p)+length(w)
+ResultadosSN=matrix(0,nrow=length(sd)*length(p)*length(w),ncol=6)
+
+l=1
+for(i in 1:length(sd)){
+  for(j in 1:length(p)){
+    datosN=rep(0,2*mu/p[j])
+    for(k in 1:length(w)){
+      for(n in 1:(2*mu/p[j])){
+      
+  datosN[n]=dnorm((n-1)*p[j],mean=mu, sd=sd[i])
+          }
+      res=model1(mu,prob=datosN,p[j],w[k])
+      ResultadosSN[l,1]=sd[i]
+      ResultadosSN[l,2]=p[j]
+      ResultadosSN[l,3]=w[k]
+      ResultadosSN[l,4]=res[["solution"]][1]
+      comp=rnorm(1000,mean=mu,sd=sd[i])
+      ResultadosSN[l,5]=sum(comp>res[["solution"]][1]+mu)/10
+      ResultadosSN[l,6]=sum(comp>res[["solution"]][1]+w+mu)/10
+      l=l+1
+    }
+  }
+}
+```
+```{r}
+colnames(ResultadosSN)<-c("sd","p","w","STOCK","Pstockout","PNonTRS")
 ```
 
+```{r}
+ResultadosSN=as.data.table(ResultadosSN)
+ResultadosSN[,.(mean(Pstockout),mean(PNonTRS)), by=sd]
+```
+
+```{r}
+ResultadosSN=as.data.table(ResultadosSN)
+ResultadosSN[,.(mean(Pstockout),mean(PNonTRS)), by=p]
+```
+```{r}
+ResultadosSN=as.data.table(ResultadosSN)
+ResultadosSN[,.(mean(Pstockout),mean(PNonTRS)), by=w]
+```
+
+```{r}
+
+hist(rgamma(10000,shape=2, scale=500))
+
+```
+
+```{r}
+kv=c(5,2,1)
+theta=c(200,500,1000)
+mu=1000
+p=c(1,seq(5,25, by=5))
+w=seq(0,300,by=50)
+
+ResultadosGamma=matrix(0,nrow=length(kv)*length(p)*length(w),ncol=7)
+
+l=1
+for(i in 1:length(kv)){
+  for(j in 1:length(p)){
+    datosN=rep(0,2*mu/p[j])
+    for(k in 1:length(w)){
+      for(n in 1:(2*mu/p[j])){
+      
+  datosN[n]=dgamma((n-1)*p[j],shape=kv[i], scale=theta[i])
+          }
+      res=model1(mu,prob=datosN,p[j],w[k])
+      ResultadosGamma[l,1]=kv[i]
+      ResultadosGamma[l,2]=theta[i]
+      ResultadosGamma[l,3]=p[j]
+      ResultadosGamma[l,4]=w[k]
+      ResultadosGamma[l,5]=res[["solution"]][1]
+      comp=rgamma(1000,shape=kv[i], scale=theta[i])
+      ResultadosGamma[l,6]=sum(comp>res[["solution"]][1]+mu)/10
+      ResultadosGamma[l,7]=sum(comp>res[["solution"]][1]+w+mu)/10
+      l=l+1
+    }
+  }
+}
+```
+```{r}
+colnames(ResultadosGamma)<-c("k","theta","p","w","STOCK","Pstockout","PNonTRS")
+```
+
+```{r}
+ResultadosGamma=as.data.table(ResultadosGamma)
+ResultadosGamma[,.(mean(Pstockout),mean(PNonTRS)), by=k]
+```
+```{r}
+ResultadosGamma=as.data.table(ResultadosGamma)
+ResultadosGamma[,.(mean(Pstockout),mean(PNonTRS)), by=p]
+```
+```{r}
+ResultadosGamma=as.data.table(ResultadosGamma)
+ResultadosGamma[,.(mean(Pstockout),mean(PNonTRS)), by=w]
+```
+
+```{r}
+b=50
+m1=25
+m2=725
+t=c(10,25,40)
+k=c(10,20,40,80)
+B=matrix(0,nrow=3,ncol=4)
+f.obj=c(m1,m2,1)
+for(i in 1:length(t)){
+  for (j in 1:length(k)) {
+    cte=b/k[j]
+     f.con=matrix(c(0,0,0),ncol=3)
+     f.rhs=c()
+    for(m in 1:k[length(k)]){
+      if(cte*m>=t[i]){
+       if(f.con[1,1]==0){
+         f.con[1,]=c(m*cte,(m*cte)^2,1)
+       }
+        else{
+          f.con=rbind(f.con,c(m*cte,(m*cte)^2,1))
+        }
+        f.rhs=append(f.rhs,m*cte-t[i])
+      }
+    }
+     n=nrow(f.con)
+     f.dir=rep(">=",n)
+     res=lp("min", f.obj, f.con, f.dir, f.rhs)
+    B[i,j]=res[["objval"]]
+  }
+
+}
+```
+```{r}
+B
+```
 
