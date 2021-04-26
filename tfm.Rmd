@@ -182,16 +182,8 @@ ResultadosGamma[,.(mean(Pstockout),mean(PNonTRS)), by=w]
 ```
 
 ```{r}
-b=50
-m1=25
-m2=725
-t=c(10,25,40)
-k=c(10,20,40,80)
-B=matrix(0,nrow=3,ncol=4)
-f.obj=c(m1,m2,1)
-for(i in 1:length(t)){
-  for (j in 1:length(k)) {
-    cte=b/k[j]
+model2=function(b,k,){
+    cte=b/k
      f.con=matrix(c(0,0,0),ncol=3)
      f.rhs=c()
     for(m in 1:k[length(k)]){
@@ -209,11 +201,115 @@ for(i in 1:length(t)){
      f.dir=rep(">=",n)
      res=lp("min", f.obj, f.con, f.dir, f.rhs)
     B[i,j]=res[["objval"]]
+  }  
+}
+```
+
+```{r}
+b=50
+m1=25
+m2=725
+t=c(10,25,40)
+k=c(10,20,40,80)
+B=matrix(0,nrow=3,ncol=4)
+f.obj=c(m1,m2,1)
+for(i in 1:length(t)){
+  for (j in 1:length(k)) {
+    cte=b/k[j]
+     f.con=matrix(c(0,0,0),ncol=3)
+     f.rhs=c()
+    for(m in 1:k[j]){
+      if(cte*m>=t[i]){
+       if(f.con[1,3]==0){
+         f.con[1,]=c(m*cte,(m*cte)^2,1)
+       }
+        else{
+          f.con=rbind(f.con,c(m*cte,(m*cte)^2,1))
+        }
+        f.rhs=append(f.rhs,m*cte-t[i])
+      }
+    }
+     n=nrow(f.con)
+     f.dir=rep(">=",n)
+     res=lp("min", f.obj, f.con, f.dir, f.rhs)
+     if(i==1){
+      res1=res 
+     }
+    B[i,j]=res[["objval"]]
   }
 
 }
 ```
+
 ```{r}
 B
+```
+```{r}
+b=50
+m1=25
+m2=725
+t=c(10,25,40)
+k=c(10,20,40,80)
+B=matrix(0,nrow=3,ncol=4)
+f.obj=c(m1,m2,1)
+for(i in 1:length(t)){
+  for (j in 1:length(k)) {
+    cte=b/k[j]
+     f.con=matrix(c(0,0,0),ncol=3)
+     f.rhs=c()
+    for(m in 1:k[j]){
+      if(cte*m>=t[i]){
+       if(f.con[1,3]==0){
+         f.con[1,]=c(m*cte,(m*cte)^2,1)
+       }
+        else{
+          f.con=rbind(f.con,c(m*cte,(m*cte)^2,1))
+        }
+        f.rhs=append(f.rhs,m*cte-t[i])
+      }
+    }
+     n=nrow(f.con)
+     f.dir=rep(">=",n)
+     res=lp("max", f.obj, f.con, f.dir, f.rhs)
+     
+    B[i,j]=res[["objval"]]
+  }
+
+}
+B
+```
+```{r}
+b=50
+m1=25
+m2=725
+t=c(10,25,40)
+k=c(10,20,40,80)
+B=matrix(0,nrow=3,ncol=4)
+f.obj=c(m1,m2,1)
+for(i in 1:length(t)){
+  for (j in 1:length(k)) {
+    cte=b/k[j]
+     f.con=matrix(c(0,0,0),ncol=3)
+    for(m in 1:k[j]){
+      if(cte*m>=t[i]){
+       if(f.con[1,3]==0){
+         f.con[1,]=c(m*cte,(m*cte)^2,1)
+       }
+        else{
+          f.con=rbind(f.con,c(m*cte,(m*cte)^2,1))
+        }
+      }
+    }
+     n=nrow(f.con)
+     f.rhs=rep(1,n)
+     f.dir=rep(">=",n)
+     res=lp("min", f.obj, f.con, f.dir, f.rhs)
+     if(i==1){
+      res1=res 
+     }
+    B[i,j]=res[["objval"]]
+  }
+
+}
 ```
 
